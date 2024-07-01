@@ -12,7 +12,7 @@ from typing_extensions import Annotated, Required, TypedDict
 from vllm.pooling_params import PoolingParams
 from vllm.sampling_params import SamplingParams
 from vllm.utils import random_uuid
-
+from vllm.lora.request import LoRARequest
 
 class CustomChatCompletionContentPartParam(TypedDict, total=False):
     __pydantic_config__ = ConfigDict(extra="allow")  # type: ignore
@@ -215,6 +215,7 @@ class ChatCompletionRequest(OpenAIBaseModel):
         description=(
             "If specified, the output will follow the context free grammar."),
     )
+    lora_request: Optional[dict] = Field(default_factory=dict)
     guided_decoding_backend: Optional[str] = Field(
         default=None,
         description=(
@@ -229,6 +230,11 @@ class ChatCompletionRequest(OpenAIBaseModel):
 
     # doc: end-chat-completion-extra-params
 
+    def to_lora_params(self) -> Union[LoRARequest, None]:
+        if not self.lora_request:
+            return None
+        return LoRARequest(**self.lora_request)
+        
     def to_sampling_params(self) -> SamplingParams:
         # We now allow logprobs being true without top_logrobs.
 
@@ -407,6 +413,7 @@ class CompletionRequest(OpenAIBaseModel):
         description=(
             "If specified, the output will follow the context free grammar."),
     )
+    lora_request: Optional[dict] = Field(default_factory=dict)
     guided_decoding_backend: Optional[str] = Field(
         default=None,
         description=(
