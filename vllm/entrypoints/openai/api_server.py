@@ -131,11 +131,25 @@ async def create_chat_completion(request: ChatCompletionRequest,
                                  raw_request: Request):
     generator = await openai_serving_chat.create_chat_completion(
         request, raw_request)
+                                   
+    # if there's an error, return it
     if isinstance(generator, ErrorResponse):
         return JSONResponse(content=generator.model_dump(),
                             status_code=generator.code)
+    
+    # if streaming is requested, handle streaming
+    # TODO implement for streaming later
+                                   
     if request.stream:
-        return StreamingResponse(content=generator,
+        #return StreamingResponse(content=generator,
+        if openai_serving_chat.enable_auto_tools and openai_serving_chat.tool_parser:
+            print('handling streaming response')
+
+            return StreamingResponse(content=generator,
+                                     media_type="text/event-stream")
+
+        else:
+            return StreamingResponse(content=generator,                         
                                  media_type="text/event-stream")
     else:
         assert isinstance(generator, ChatCompletionResponse)
@@ -234,7 +248,11 @@ if __name__ == "__main__":
                                             served_model_names,
                                             args.response_role,
                                             args.lora_modules,
-                                            args.chat_template)
+                                            #args.chat_template)
+                                            args.chat_template,
+                                            args.enable_auto_tool_choice,
+                                            args.tool_call_parser
+                                            )
     openai_serving_completion = OpenAIServingCompletion(
         engine, model_config, served_model_names, args.lora_modules)
     openai_serving_embedding = OpenAIServingEmbedding(engine, model_config,
